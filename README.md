@@ -102,6 +102,7 @@ and `vehicle_material.material_id` reference other services and have no foreign 
 | --- | --- | --- |
 | `PORT` | `3000` | |
 | `PUBLIC_URL` | request host | Public origin used in canonical links, sitemap and llms.txt, e.g. `https://fakedata.example.com` |
+| `SITE_URL` | `PUBLIC_URL` | Canonical docs-site origin (set to the Vercel domain when the site is hosted there) |
 | `REPO_URL` | this repo | GitHub link shown on the site |
 | `RATE_LIMIT` | `120` | Requests per window per IP |
 | `RATE_LIMIT_TTL_MS` | `60000` | Rate-limit window |
@@ -119,6 +120,32 @@ docker run -p 3000:3000 faker-data
 Railway injects `PORT` automatically. Connect the repo in Railway, or run
 `railway up`. Set `PUBLIC_URL` to your Railway or custom domain so canonical
 links, the sitemap and `llms.txt` use it. Optionally set `RATE_LIMIT` / `RATE_LIMIT_TTL_MS`.
+
+### Vercel (docs website)
+
+The docs site can be hosted on Vercel as static files, with the API staying on Railway:
+
+```
+Vercel  (static docs: /, /resources/*, llms.txt, sitemap)  ──fetch──▶  Railway (Nest API: /api/*, /docs, /openapi.json)
+```
+
+`npm run build:site` pre-renders every page into `site-dist/` with the same
+templates and data as the API. The playground calls the API directly (CORS
+is enabled). It doesn't go through a Vercel proxy, because then every request
+would arrive from Vercel's IPs and share one rate-limit bucket.
+
+1. Import the repo in Vercel. `vercel.json` already sets the build command, the output directory and clean URLs.
+2. In Vercel → Settings → Environment Variables, set:
+   - `API_URL`: your Railway URL, e.g. `https://fake-data-production.up.railway.app` (required; the build fails without it)
+   - `SITE_URL`: the site's own domain (optional; defaults to the Vercel production domain)
+3. On Railway, set `SITE_URL` to the Vercel domain too, so the copy of the pages that
+   Railway serves points canonical links and the sitemap at Vercel (avoids duplicate content).
+
+Preview locally:
+
+```bash
+API_URL=http://localhost:3000 npm run build:site && npm run preview:site
+```
 
 ## Docs website & AI discoverability
 

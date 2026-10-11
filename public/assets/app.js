@@ -3,7 +3,8 @@
 (() => {
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
-  const ORIGIN = location.origin;
+  // API origin: same as the page, unless the docs are hosted separately (Vercel).
+  const ORIGIN = (document.querySelector('meta[name="api-base"]')?.content || location.origin).replace(/\/+$/, '');
 
   const store = {
     get(key) {
@@ -304,7 +305,7 @@
       if (f.seed.value.trim()) body.seed = f.seed.value.trim();
       if (f.locale.value !== 'en') body.locale = f.locale.value;
 
-      const res = await fetch('/api/generate', {
+      const res = await fetch(`${ORIGIN}/api/generate`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(body),

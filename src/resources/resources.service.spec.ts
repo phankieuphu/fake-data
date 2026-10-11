@@ -53,7 +53,7 @@ describe('ResourcesService', () => {
   });
 
   it('references real entities in lookups', () => {
-    const cart = service.get('carts', 1, opts) as {
+    const cart = service.get('carts', 1, opts) as unknown as {
       items: { productId: number; title: string }[];
     };
     for (const item of cart.items) {

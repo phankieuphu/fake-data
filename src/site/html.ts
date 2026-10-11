@@ -64,7 +64,14 @@ export function snippetTabs(url: string): string {
   return `<div class="tabs" data-tabs data-snippets="${esc(url)}"><div class="tablist" role="tablist">${tabs}</div>${panels}</div>`;
 }
 
+/** `site` hosts the pages, `api` the REST API (same origin unless split, e.g. Vercel + Railway). */
+export interface SiteUrls {
+  site: string;
+  api: string;
+}
+
 export interface LayoutOptions {
+  api: string;
   title: string;
   description: string;
   canonical: string;
@@ -88,7 +95,7 @@ export function layout(o: LayoutOptions): string {
 <meta name="description" content="${esc(o.description)}">
 <link rel="canonical" href="${esc(o.canonical)}">
 <link rel="alternate" type="text/plain" title="llms.txt" href="/llms.txt">
-<link rel="alternate" type="application/json" title="OpenAPI" href="/openapi.json">
+<link rel="alternate" type="application/json" title="OpenAPI" href="${esc(o.api)}/openapi.json">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="${SITE_NAME}">
 <meta property="og:title" content="${esc(o.title)}">
@@ -96,6 +103,7 @@ export function layout(o: LayoutOptions): string {
 <meta property="og:url" content="${esc(o.canonical)}">
 <meta name="twitter:card" content="summary">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232563eb'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='16' font-weight='700' fill='white' text-anchor='middle'%3E%7B%7D%3C/text%3E%3C/svg%3E">
+<meta name="api-base" content="${esc(o.api)}">
 <link rel="stylesheet" href="/assets/styles.css">
 ${ld}
 </head>
@@ -106,7 +114,7 @@ ${ld}
     <a href="/resources">Resources</a>
     <a href="/#playground">Playground</a>
     <a href="/#generator">Generator</a>
-    <a href="/docs">API reference</a>
+    <a href="${esc(o.api)}/docs">API reference</a>
     <a href="${esc(REPO_URL)}" rel="noopener">GitHub</a>
   </nav>
 </div></header>
@@ -115,7 +123,7 @@ ${o.body}
 </main>
 <footer class="wrap footer">
   <p>${SITE_NAME}: free fake REST data for coding, testing, prototyping and demos. Data is generated, never stored. Open source on <a href="${esc(REPO_URL)}">GitHub</a>.</p>
-  <p><a href="/llms.txt">llms.txt</a> · <a href="/openapi.json">openapi.json</a> · <a href="/sitemap.xml">sitemap.xml</a> · <a href="/api/resources">/api/resources</a></p>
+  <p><a href="/llms.txt">llms.txt</a> · <a href="${esc(o.api)}/openapi.json">openapi.json</a> · <a href="/sitemap.xml">sitemap.xml</a> · <a href="${esc(o.api)}/api/resources">/api/resources</a></p>
 </footer>
 <script src="/assets/app.js" defer></script>
 </body>

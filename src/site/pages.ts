@@ -3,6 +3,7 @@ import { RESOURCE_DEFINITIONS } from '../resources/definitions/index.js';
 import type { ResourceInfo } from '../resources/resource.registry.js';
 import type { Entity } from '../resources/resource.types.js';
 import {
+  type SiteUrls,
   REPO_URL,
   SITE_NAME,
   codeBlock,
@@ -129,11 +130,11 @@ const PLAYGROUND = (
   <div data-playground-snippets>${snippetTabs(initialUrl)}</div>
 </section>`;
 
-const GENERATOR = `
+const GENERATOR = (api: string) => `
 <section id="generator" class="panel">
   <div class="panel-head">
     <h2>Custom schema generator</h2>
-    <p>Describe any shape with <code>"field": "module.method"</code> (any <a href="/api/generate/methods">Faker method</a>). Nested objects work too.</p>
+    <p>Describe any shape with <code>"field": "module.method"</code> (any <a href="${api}/api/generate/methods">Faker method</a>). Nested objects work too.</p>
   </div>
   <form class="gen" data-generator>
     <textarea name="schema" spellcheck="false" rows="9" aria-label="Schema JSON">{
@@ -158,10 +159,11 @@ const GENERATOR = `
 </section>`;
 
 export function homePage(
-  base: string,
+  urls: SiteUrls,
   resources: ResourceInfo[],
   sample: unknown,
 ): string {
+  const { site, api } = urls;
   const topics = topicsOf(resources);
   const body = `
 <section class="hero">
@@ -172,9 +174,9 @@ export function homePage(
   <div class="hero-cta">
     <a class="btn primary" href="#playground">Try it live</a>
     <a class="btn" href="/resources">Browse resources</a>
-    <a class="btn ghost" href="/docs">API reference</a>
+    <a class="btn ghost" href="${api}/docs">API reference</a>
   </div>
-  <div class="hero-code">${snippetTabs(`${base}/api/users/1`)}</div>
+  <div class="hero-code">${snippetTabs(`${api}/api/users/1`)}</div>
 </section>
 
 <section class="features">
@@ -186,14 +188,14 @@ export function homePage(
   <div><h3>Mock writes</h3><p>POST / PUT / PATCH / DELETE respond like a real API. Nothing is stored.</p></div>
 </section>
 
-${PLAYGROUND(resources, sample, `${base}/api/users?limit=3`)}
+${PLAYGROUND(resources, sample, `${api}/api/users?limit=3`)}
 
 <section class="panel" id="resources">
   <div class="panel-head"><h2>Resources</h2><p>Click one for its fields, example JSON and endpoints.</p></div>
   ${catalogHtml(resources)}
 </section>
 
-${GENERATOR}
+${GENERATOR(api)}
 
 <section class="panel" id="reference">
   <div class="panel-head"><h2>Endpoint cheat sheet</h2></div>
@@ -225,9 +227,10 @@ ${GENERATOR}
 </section>`;
 
   return layout({
+    api,
     title: HOME_TITLE,
     description: HOME_DESCRIPTION,
-    canonical: `${base}/`,
+    canonical: `${site}/`,
     body,
     jsonLd: [
       {
@@ -235,8 +238,8 @@ ${GENERATOR}
         '@type': 'WebAPI',
         name: SITE_NAME,
         description: HOME_DESCRIPTION,
-        url: `${base}/`,
-        documentation: `${base}/docs`,
+        url: `${site}/`,
+        documentation: `${api}/docs`,
         termsOfService: REPO_URL,
         isAccessibleForFree: true,
         keywords:
@@ -257,13 +260,15 @@ ${GENERATOR}
 }
 
 export function resourcesIndexPage(
-  base: string,
+  urls: SiteUrls,
   resources: ResourceInfo[],
 ): string {
+  const { site, api } = urls;
   return layout({
+    api,
     title: `All ${resources.length} fake data resources | ${SITE_NAME}`,
     description: `Browse ${resources.length} free fake JSON REST resources by topic: ${topicsOf(resources).join(', ')}.`,
-    canonical: `${base}/resources`,
+    canonical: `${site}/resources`,
     body: `<section class="hero small"><h1>Resources</h1>
 <p class="lead">${resources.length} fake data resources grouped by topic. Each one supports lists, single records, random picks, export and simulated writes.</p></section>
 <section class="panel">${catalogHtml(resources)}</section>`,
@@ -290,23 +295,24 @@ function fieldRows(sample: Entity): string {
 }
 
 export function resourcePage(
-  base: string,
+  urls: SiteUrls,
   info: ResourceInfo,
   sample: Entity,
   list: unknown,
 ): string {
-  const api = `${base}/api/${info.name}`;
+  const { site, api } = urls;
+  const endpoint = `${api}/api/${info.name}`;
   const nested = info.parent
-    ? `<li><code>GET /api/${info.parent.resource}/{id}/${info.name}</code>: the ${info.parent.perParent} ${info.name} of one ${info.parent.resource.replace(/s$/, '')} (<a href="/api/${info.parent.resource}/1/${info.name}">example</a>)</li>`
+    ? `<li><code>GET /api/${info.parent.resource}/{id}/${info.name}</code>: the ${info.parent.perParent} ${info.name} of one ${info.parent.resource.replace(/s$/, '')} (<a href="${api}/api/${info.parent.resource}/1/${info.name}">example</a>)</li>`
     : '';
   const children = info.children
     .map(
       (child) =>
-        `<li><code>GET /api/${info.name}/{id}/${child}</code> (<a href="/api/${info.name}/1/${child}">example</a>)</li>`,
+        `<li><code>GET /api/${info.name}/{id}/${child}</code> (<a href="${api}/api/${info.name}/1/${child}">example</a>)</li>`,
     )
     .join('');
   const title = `Fake ${info.name} API: free ${info.name} JSON for testing | ${SITE_NAME}`;
-  const description = `${info.description}. ${info.total.toLocaleString('en')} free fake ${info.name} records as JSON, CSV or SQL. No API key. GET ${api}`;
+  const description = `${info.description}. ${info.total.toLocaleString('en')} free fake ${info.name} records as JSON, CSV or SQL. No API key. GET ${endpoint}`;
 
   const body = `
 <nav class="crumbs"><a href="/">Home</a> / <a href="/resources">Resources</a> / ${esc(info.name)}</nav>
@@ -314,7 +320,7 @@ export function resourcePage(
   <p class="eyebrow">${esc(info.topic)} · ${info.total.toLocaleString('en')} records</p>
   <h1>Fake ${esc(info.name)} API</h1>
   <p class="lead">${esc(info.description)}. Free, stable fake data for testing and demos.</p>
-  <div class="urlbar static"><span class="method">GET</span><input readonly value="${esc(api)}" aria-label="Endpoint URL"><button type="button" class="btn ghost" data-copy-text="${esc(api)}">Copy</button>
+  <div class="urlbar static"><span class="method">GET</span><input readonly value="${esc(endpoint)}" aria-label="Endpoint URL"><button type="button" class="btn ghost" data-copy-text="${esc(endpoint)}">Copy</button>
   <a class="btn primary" href="/?resource=${esc(info.name)}#playground">Open in playground</a></div>
 </section>
 
@@ -332,15 +338,15 @@ export function resourcePage(
 <section class="panel">
   <div class="panel-head"><h2>Endpoints</h2></div>
   <ul class="endpoints">
-    <li><code>GET /api/${info.name}?page=1&amp;limit=10</code>: paginated list (<a href="/api/${info.name}">try</a>)</li>
-    <li><code>GET /api/${info.name}/{id}</code>: one record, ids 1–${info.total.toLocaleString('en')} (<a href="/api/${info.name}/1">try</a>)</li>
-    <li><code>GET /api/${info.name}/random?count=5</code>: random records (<a href="/api/${info.name}/random?count=5">try</a>)</li>
-    <li><code>GET /api/${info.name}/export?count=1000&amp;format=csv</code>: bulk export as JSON, CSV or SQL (<a href="/api/${info.name}/export?count=100&amp;format=csv">CSV</a> · <a href="/api/${info.name}/export?count=100&amp;format=sql">SQL</a>)</li>
+    <li><code>GET /api/${info.name}?page=1&amp;limit=10</code>: paginated list (<a href="${api}/api/${info.name}">try</a>)</li>
+    <li><code>GET /api/${info.name}/{id}</code>: one record, ids 1–${info.total.toLocaleString('en')} (<a href="${api}/api/${info.name}/1">try</a>)</li>
+    <li><code>GET /api/${info.name}/random?count=5</code>: random records (<a href="${api}/api/${info.name}/random?count=5">try</a>)</li>
+    <li><code>GET /api/${info.name}/export?count=1000&amp;format=csv</code>: bulk export as JSON, CSV or SQL (<a href="${api}/api/${info.name}/export?count=100&amp;format=csv">CSV</a> · <a href="${api}/api/${info.name}/export?count=100&amp;format=sql">SQL</a>)</li>
     ${nested}${children}
     <li><code>POST /api/${info.name}</code>, <code>PUT|PATCH|DELETE /api/${info.name}/{id}</code>: simulated writes</li>
   </ul>
   <h3 class="sub">Code</h3>
-  ${snippetTabs(`${api}?limit=5`)}
+  ${snippetTabs(`${endpoint}?limit=5`)}
 </section>
 
 <section class="panel">
@@ -349,9 +355,10 @@ export function resourcePage(
 </section>`;
 
   return layout({
+    api,
     title,
     description,
-    canonical: `${base}/resources/${info.name}`,
+    canonical: `${site}/resources/${info.name}`,
     body,
     jsonLd: [
       {
@@ -359,7 +366,7 @@ export function resourcePage(
         '@type': 'Dataset',
         name: `Fake ${info.name}`,
         description,
-        url: `${base}/resources/${info.name}`,
+        url: `${site}/resources/${info.name}`,
         isAccessibleForFree: true,
         license: 'https://opensource.org/licenses/ISC',
         creator: { '@type': 'Organization', name: SITE_NAME, url: REPO_URL },
@@ -372,12 +379,12 @@ export function resourcePage(
           {
             '@type': 'DataDownload',
             encodingFormat: 'text/csv',
-            contentUrl: `${api}/export?format=csv`,
+            contentUrl: `${endpoint}/export?format=csv`,
           },
           {
             '@type': 'DataDownload',
             encodingFormat: 'application/sql',
-            contentUrl: `${api}/export?format=sql`,
+            contentUrl: `${endpoint}/export?format=sql`,
           },
         ],
       },
@@ -385,11 +392,13 @@ export function resourcePage(
   });
 }
 
-export function notFoundPage(base: string, name: string): string {
+export function notFoundPage(urls: SiteUrls, name: string): string {
+  const { site, api } = urls;
   return layout({
+    api,
     title: `Not found | ${SITE_NAME}`,
     description: 'Resource not found.',
-    canonical: `${base}/resources`,
+    canonical: `${site}/resources`,
     body: `<section class="hero small"><h1>No resource called “${esc(name)}”</h1><p class="lead"><a href="/resources">Browse all resources</a> or <a href="/#generator">generate a custom shape</a>.</p></section>`,
   });
 }

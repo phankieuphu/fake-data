@@ -4,3 +4,5 @@ coverage
 data
 .git
 .env
+site-dist
+.vercel

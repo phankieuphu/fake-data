@@ -5,6 +5,7 @@ import type { Request, Response } from 'express';
 import { parseOptions } from '../common/query.js';
 import { ResourceRegistry } from '../resources/resource.registry.js';
 import { ResourcesService } from '../resources/resources.service.js';
+import type { SiteUrls } from './html.js';
 import { llmsFullTxt, llmsTxt, robotsTxt, sitemapXml } from './discovery.js';
 import {
   homePage,
@@ -17,10 +18,17 @@ const HTML = 'text/html; charset=utf-8';
 const TEXT = 'text/plain; charset=utf-8';
 const CACHE = 'public, max-age=300';
 
-/** Public origin for absolute links; PUBLIC_URL wins over the request host. */
-function baseUrl(req: Request): string {
-  const configured = process.env.PUBLIC_URL?.replace(/\/+$/, '');
-  return configured || `${req.protocol}://${req.get('host')}`;
+const trim = (url?: string) => url?.trim().replace(/\/+$/, '') || undefined;
+
+/**
+ * PUBLIC_URL: this API's public origin (defaults to the request host).
+ * SITE_URL: where the docs site is canonically hosted, e.g. the Vercel
+ * deployment — set it so this copy of the pages points search engines there.
+ */
+function siteUrls(req: Request): SiteUrls {
+  const api =
+    trim(process.env.PUBLIC_URL) ?? `${req.protocol}://${req.get('host')}`;
+  return { api, site: trim(process.env.SITE_URL) ?? api };
 }
 
 @ApiExcludeController()
@@ -39,14 +47,14 @@ export class SiteController {
   @Header('Cache-Control', CACHE)
   home(@Req() req: Request): string {
     const sample = this.resources.list('users', { ...this.defaults, limit: 3 });
-    return homePage(baseUrl(req), this.registry.catalog(), sample);
+    return homePage(siteUrls(req), this.registry.catalog(), sample);
   }
 
   @Get('resources')
   @Header('Content-Type', HTML)
   @Header('Cache-Control', CACHE)
   resourcesIndex(@Req() req: Request): string {
-    return resourcesIndexPage(baseUrl(req), this.registry.catalog());
+    return resourcesIndexPage(siteUrls(req), this.registry.catalog());
   }
 
   @Get('resources/:name')
@@ -60,10 +68,10 @@ export class SiteController {
     const def = this.registry.find(name);
     if (!def) {
       res.status(404);
-      return notFoundPage(baseUrl(req), name);
+      return notFoundPage(siteUrls(req), name);
     }
     return resourcePage(
-      baseUrl(req),
+      siteUrls(req),
       this.registry.info(def),
       this.resources.get(name, 1, this.defaults),
       this.resources.list(name, { ...this.defaults, limit: 3 }),
@@ -73,27 +81,27 @@ export class SiteController {
   @Get('robots.txt')
   @Header('Content-Type', TEXT)
   robots(@Req() req: Request): string {
-    return robotsTxt(baseUrl(req));
+    return robotsTxt(siteUrls(req).site);
   }
 
   @Get('sitemap.xml')
   @Header('Content-Type', 'application/xml; charset=utf-8')
   sitemap(@Req() req: Request): string {
-    return sitemapXml(baseUrl(req), this.registry.catalog());
+    return sitemapXml(siteUrls(req), this.registry.catalog());
   }
 
   @Get('llms.txt')
   @Header('Content-Type', TEXT)
   @Header('Cache-Control', CACHE)
   llms(@Req() req: Request): string {
-    return llmsTxt(baseUrl(req), this.registry.catalog());
+    return llmsTxt(siteUrls(req), this.registry.catalog());
   }
 
   @Get('llms-full.txt')
   @Header('Content-Type', TEXT)
   @Header('Cache-Control', CACHE)
   llmsFull(@Req() req: Request): string {
-    return llmsFullTxt(baseUrl(req), this.registry.catalog(), (name) =>
+    return llmsFullTxt(siteUrls(req), this.registry.catalog(), (name) =>
       this.resources.get(name, 1, this.defaults),
     );
   }

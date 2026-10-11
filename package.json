@@ -17,6 +17,8 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "generate:sql": "nest build && node dist/cli/generate-sql",
+    "build:site": "nest build && node dist/cli/build-site",
+    "preview:site": "npx -y serve@14.2.4 site-dist -l 4173",
     "lint": "oxlint --type-aware src/ test/",
     "test": "vitest run",
     "test:watch": "vitest",
