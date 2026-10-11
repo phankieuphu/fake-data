@@ -25,13 +25,53 @@ describe('Faker Data API (e2e)', () => {
     await app.close();
   });
 
-  it('serves the landing page, docs and health', async () => {
-    await request(http).get('/').expect(200).expect('Content-Type', /html/);
+  it('serves the server-rendered docs site', async () => {
+    const home = await request(http)
+      .get('/')
+      .expect(200)
+      .expect('Content-Type', /html/);
+    expect(home.text).toContain('<h1>Fake data REST API');
+    expect(home.text).toContain('"@type":"FAQPage"');
+    expect(home.text).toContain('href="/resources/users"');
+
+    const page = await request(http).get('/resources/products').expect(200);
+    expect(page.text).toContain('Fake products API');
+    expect(page.text).toContain('&quot;title&quot;'); // example JSON rendered server-side
+
+    await request(http).get('/resources').expect(200);
+    await request(http)
+      .get('/resources/nope')
+      .expect(404)
+      .expect('Content-Type', /html/);
+    await request(http).get('/assets/app.js').expect(200);
+    await request(http).get('/assets/styles.css').expect(200);
     await request(http).get('/docs').expect(200);
     await request(http)
       .get('/api/health')
       .expect(200)
       .expect(({ body }) => expect(body.status).toBe('ok'));
+  });
+
+  it('serves AI / search discovery files', async () => {
+    const llms = await request(http)
+      .get('/llms.txt')
+      .expect(200)
+      .expect('Content-Type', /text\/plain/);
+    expect(llms.text).toMatch(/^# Faker Data API/);
+    expect(llms.text).toContain('/api/users');
+
+    const full = await request(http).get('/llms-full.txt').expect(200);
+    expect(full.text).toContain('## vehicles');
+
+    const robots = await request(http).get('/robots.txt').expect(200);
+    expect(robots.text).toContain('User-agent: GPTBot');
+    expect(robots.text).toMatch(/Sitemap: http:\/\/.+\/sitemap\.xml/);
+
+    const sitemap = await request(http).get('/sitemap.xml').expect(200);
+    expect(sitemap.text).toContain('/resources/orders</loc>');
+
+    const openapi = await request(http).get('/openapi.json').expect(200);
+    expect(openapi.body.paths['/api/{resource}']).toBeDefined();
   });
 
   it('GET /api/resources lists topics', async () => {

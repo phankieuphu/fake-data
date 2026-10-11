@@ -11,6 +11,7 @@ ENV NODE_ENV=production PORT=3000
 COPY --from=build /app/package.json ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
+COPY --from=build /app/public ./public
 USER node
 EXPOSE 3000
 CMD ["node", "dist/main.js"]

@@ -2,7 +2,7 @@
 
 A free, public REST API that serves fake data for coding, prototyping, demos,
 tutorials and frontend work — like JSONPlaceholder / DummyJSON, but with
-**47 resources across 11 topics**. It runs on **NestJS** and **Faker**.
+**47 resources across 12 topics**. It runs on **NestJS** and **Faker**.
 
 - **Deterministic**: the same `id` + `seed` + `locale` always returns the same entity, with nothing stored.
 - **Relational**: `userId`, `productId` and similar ids point at real entities, e.g. cart items match `/api/products/:id`.
@@ -11,7 +11,9 @@ tutorials and frontend work — like JSONPlaceholder / DummyJSON, but with
 - **Many formats**: JSON, CSV or SQL `INSERT`s from any list (`?format=csv`).
 - **Custom schemas**: `/api/generate?name=person.fullName&email=internet.email`.
 - **Simulated writes**: POST / PUT / PATCH / DELETE answer like a real API, but nothing is persisted.
-- **Swagger docs** at `/docs`, a landing page at `/`, CORS enabled and rate limiting.
+- **Docs website** at `/`: a live playground, copyable JSON and code snippets (fetch, curl, axios, Python), and one page per resource (`/resources/users`).
+- **Swagger** at `/docs`, OpenAPI at `/openapi.json`, CORS enabled and rate limiting.
+- **AI-ready**: `/llms.txt`, `/llms-full.txt`, `robots.txt` that allows AI crawlers, `sitemap.xml`, and schema.org JSON-LD.
 
 ## Quick start
 
@@ -99,6 +101,8 @@ and `vehicle_material.material_id` reference other services and have no foreign 
 | Env var | Default | |
 | --- | --- | --- |
 | `PORT` | `3000` | |
+| `PUBLIC_URL` | request host | Public origin used in canonical links, sitemap and llms.txt, e.g. `https://fakedata.example.com` |
+| `REPO_URL` | this repo | GitHub link shown on the site |
 | `RATE_LIMIT` | `120` | Requests per window per IP |
 | `RATE_LIMIT_TTL_MS` | `60000` | Rate-limit window |
 
@@ -113,7 +117,22 @@ docker run -p 3000:3000 faker-data
 
 `railway.json` builds from the `Dockerfile` and health-checks `/api/health`.
 Railway injects `PORT` automatically. Connect the repo in Railway, or run
-`railway up`, then optionally set `RATE_LIMIT` / `RATE_LIMIT_TTL_MS`.
+`railway up`. Set `PUBLIC_URL` to your Railway or custom domain so canonical
+links, the sitemap and `llms.txt` use it. Optionally set `RATE_LIMIT` / `RATE_LIMIT_TTL_MS`.
+
+## Docs website & AI discoverability
+
+The docs pages are rendered on the server, so search engines and AI crawlers
+(which mostly don't run JavaScript) see the full content. `public/assets/app.js`
+only adds interactivity on top.
+
+| URL | Purpose |
+| --- | --- |
+| `/` | Landing page, playground, resource catalog, generator, FAQ |
+| `/resources/:name` | Per-resource page: example JSON, field table, endpoints, code snippets |
+| `/llms.txt`, `/llms-full.txt` | [llms.txt](https://llmstxt.org) summary for LLMs and AI agents |
+| `/robots.txt`, `/sitemap.xml` | Crawling: GPTBot, ClaudeBot, PerplexityBot and others are explicitly allowed |
+| `/openapi.json` | OpenAPI spec for Postman, codegen, and agent tool use |
 
 ## Project structure
 
@@ -126,7 +145,8 @@ src/
   generator/         custom schema endpoint (/api/generate)
   datasets/          Postgres seed scripts (customer, vehicle)
   cli/generate-sql.ts
-  home/              landing page + health
+  site/              server-rendered docs site, llms.txt, robots.txt, sitemap, health
+public/assets/       docs site CSS + JS (playground, copy buttons, highlighting)
 test/                e2e tests (vitest + supertest)
 ```
 

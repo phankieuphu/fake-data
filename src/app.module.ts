@@ -3,8 +3,9 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { DatasetsModule } from './datasets/datasets.module.js';
 import { GeneratorModule } from './generator/generator.module.js';
-import { HomeController } from './home/home.controller.js';
 import { ResourcesModule } from './resources/resources.module.js';
+import { HealthController } from './site/health.controller.js';
+import { SiteController } from './site/site.controller.js';
 
 @Module({
   imports: [
@@ -22,7 +23,7 @@ import { ResourcesModule } from './resources/resources.module.js';
     DatasetsModule,
     ResourcesModule,
   ],
-  controllers: [HomeController],
+  controllers: [HealthController, SiteController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}
